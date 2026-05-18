@@ -634,36 +634,36 @@ atributo IDs: 1=Físico, 5=Magia, 6=Fuego, 7=Rayo, 8=Sagrado, 9=Hemorragia, 10=V
 */
 
 INSERT INTO enemigo_resistencia (id_enemigo, id_atributo, reduccion_dano) VALUES
-(1,6, 20.00),  -- Godrick resiste fuego
-(2, 5,  40.00),  -- Rennala muy resistente a magia
-(3, 9, 30.00),  -- Radahn resiste hemorragia
-(4, 6, 60.00),  -- Rykard inmune a fuego (vive en lava)
-(5, 8, 25.00),  -- Morgott resiste sagrado
-(6, 9, 50.00),  -- Mohg resiste hemorragia (la usa él mismo)
-(7, 11, 70.00),  -- Malenia resiste putrefacción escarlata
-(8, 8, 35.00),  -- Maliketh resiste sagrado
-(9, 1, 15.00),  -- Hoarah Loux resiste físico
-(10, 8, 30.00),  -- Elden Beast resiste sagrado
-(11, 6, 20.00),  -- Margit similar a Godrick
-(13, 9, 45.00),  -- Mohg Omen similar al mayor
-(14, 5, 40.00),  -- Astel resiste magia (es estelar)
-(17, 7, 35.00),  -- Placidusax resiste rayo (es dragón)
-(18, 7, 50.00),  -- Bayle dragón resistente a rayo
-(18, 6, 40.00),  -- Bayle también resiste fuego
-(19, 6, 55.00),  -- Messmer inmune a fuego (lo usa)
-(20, 11, 65.00),  -- Romina resiste putrefacción
-(21, 5, 30.00),  -- Promised Consort resiste magia
-(21, 8, 25.00),  -- y sagrado
-(22, 11, 50.00),  -- Putrescent Knight resiste putrefacción
-(23, 5, 35.00),  -- Rellana resiste magia carian
-(24, 9, 20.00),  -- Gaius
-(25, 8, 30.00),  -- Divine Beast resiste sagrado
-(28, 8, 45.00),  -- Black Blade Kindred resiste sagrado
-(29, 6, 30.00),  -- Ulcerated Tree Spirit resiste fuego
-(31, 1, 10.00),  -- Soldado Godrick básico
-(32, 5, 25.00),  -- Hechicero Raya Lucaria resiste magia
-(34, 6, 20.00),  -- Hornsent lancero
-(36, 6, 5.00);   -- Oveja muy poca resistencia
+(1,6, 20.00), -- Godrick resiste fuego
+(2, 5,  40.00), -- Rennala muy resistente a magia
+(3, 9, 30.00), -- Radahn resiste hemorragia
+(4, 6, 60.00), -- Rykard inmune a fuego (vive en lava)
+(5, 8, 25.00), -- Morgott resiste sagrado
+(6, 9, 50.00), -- Mohg resiste hemorragia (la usa él mismo)
+(7, 11, 70.00), -- Malenia resiste putrefacción escarlata
+(8, 8, 35.00), -- Maliketh resiste sagrado
+(9, 1, 15.00), -- Hoarah Loux resiste físico
+(10, 8, 30.00), -- Elden Beast resiste sagrado
+(11, 6, 20.00), -- Margit similar a Godrick
+(13, 9, 45.00), -- Mohg Omen similar al mayor
+(14, 5, 40.00), -- Astel resiste magia (es estelar)
+(17, 7, 35.00), -- Placidusax resiste rayo (es dragón)
+(18, 7, 50.00), -- Bayle dragón resistente a rayo
+(18, 6, 40.00), -- Bayle también resiste fuego
+(19, 6, 55.00), -- Messmer inmune a fuego (lo usa)
+(20, 11, 65.00), -- Romina resiste putrefacción
+(21, 5, 30.00), -- Promised Consort resiste magia
+(21, 8, 25.00), -- y sagrado
+(22, 11, 50.00), -- Putrescent Knight resiste putrefacción
+(23, 5, 35.00), -- Rellana resiste magia carian
+(24, 9, 20.00), -- Gaius
+(25, 8, 30.00), -- Divine Beast resiste sagrado
+(28, 8, 45.00), -- Black Blade Kindred resiste sagrado
+(29, 6, 30.00), -- Ulcerated Tree Spirit resiste fuego
+(31, 1, 10.00), -- Soldado Godrick básico
+(32, 5, 25.00), -- Hechicero Raya Lucaria resiste magia
+(34, 6, 20.00), -- Hornsent lancero
+(36, 6, 5.00); -- Oveja muy poca resistencia
 
 INSERT INTO enemigo_debilidad (id_enemigo, id_atributo, multiplicador_dano) VALUES
 (1,  9,  1.50),   -- Godrick débil a hemorragia
@@ -799,11 +799,11 @@ SELECT
         ELSE 'No'
     END AS tiene_ficha_jefe
 FROM enemigo e
-INNER JOIN categoria_enemigo c   ON e.id_categoria  = c.id_categoria
-INNER JOIN faccion           f   ON e.id_faccion    = f.id_faccion
-INNER JOIN ubicacion         u   ON e.id_ubicacion  = u.id_ubicacion
-INNER JOIN origen_contenido  o   ON e.id_origen     = o.id_origen
-LEFT  JOIN ficha_jefe        fj  ON e.id_enemigo    = fj.id_enemigo;
+INNER JOIN categoria_enemigo c ON e.id_categoria  = c.id_categoria
+INNER JOIN faccion f ON e.id_faccion = f.id_faccion
+INNER JOIN ubicacion u ON e.id_ubicacion = u.id_ubicacion
+INNER JOIN origen_contenido o ON e.id_origen = o.id_origen
+LEFT  JOIN ficha_jefe fj ON e.id_enemigo = fj.id_enemigo;
 
 CREATE OR REPLACE VIEW vw_ranking_jefes_por_region AS
 SELECT
@@ -1034,14 +1034,14 @@ TRIGGERS
 
 
 CREATE TABLE auditoria_enemigo (
-    id_auditoria        INT AUTO_INCREMENT PRIMARY KEY,
-    id_enemigo_afectado INT          NOT NULL,
-    operacion           VARCHAR(10)  NOT NULL,
-    campo_modificado    VARCHAR(50),
-    valor_anterior      VARCHAR(255),
-    valor_nuevo         VARCHAR(255),
+    id_auditoria INT AUTO_INCREMENT PRIMARY KEY,
+    id_enemigo_afectado INT NOT NULL,
+    operacion VARCHAR(10) NOT NULL,
+    campo_modificado VARCHAR(50),
+    valor_anterior VARCHAR(255),
+    valor_nuevo VARCHAR(255),
     usuario_responsable VARCHAR(100) NOT NULL DEFAULT (CURRENT_USER()),
-    fecha_evento        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_evento DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_operacion CHECK (operacion IN ('INSERT','UPDATE','DELETE'))
 ) ENGINE=InnoDB;
 
@@ -1137,14 +1137,14 @@ EVENTOS PROGRAMADOS
 SET GLOBAL event_scheduler = ON;
 
 CREATE TABLE resumen_auditoria_historico (
-    id_resumen           INT AUTO_INCREMENT PRIMARY KEY,
-    fecha_corte          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    registros_eliminados INT          NOT NULL DEFAULT 0,
-    operaciones_insert   INT          NOT NULL DEFAULT 0,
-    operaciones_update   INT          NOT NULL DEFAULT 0,
-    operaciones_delete   INT          NOT NULL DEFAULT 0,
+    id_resumen INT AUTO_INCREMENT PRIMARY KEY,
+    fecha_corte DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    registros_eliminados INT NOT NULL DEFAULT 0,
+    operaciones_insert INT NOT NULL DEFAULT 0,
+    operaciones_update INT NOT NULL DEFAULT 0,
+    operaciones_delete INT NOT NULL DEFAULT 0,
     enemigo_mas_editado  VARCHAR(100),
-    observaciones        TEXT
+    observaciones TEXT
 )
 
 DELIMITER $$
@@ -1157,11 +1157,11 @@ ENABLE
 COMMENT 'Limpia auditoría con más de 90 días y genera resumen histórico'
 DO
 BEGIN
-    DECLARE v_total_borrar       INT     DEFAULT 0;
-    DECLARE v_inserts            INT     DEFAULT 0;
-    DECLARE v_updates            INT     DEFAULT 0;
-    DECLARE v_deletes            INT     DEFAULT 0;
-    DECLARE v_enemigo_top        VARCHAR(100) DEFAULT NULL;
+    DECLARE v_total_borrar INT DEFAULT 0;
+    DECLARE v_inserts INT DEFAULT 0;
+    DECLARE v_updates INT DEFAULT 0;
+    DECLARE v_deletes INT DEFAULT 0;
+    DECLARE v_enemigo_top VARCHAR(100) DEFAULT NULL;
 
     -- 1) Contar registros viejos y por operación
     SELECT
@@ -1204,22 +1204,19 @@ END$$
 DELIMITER ;
 
 /*
--- USUARIOS Y PERMISOS
+USUARIOS Y PERMISOS
 */
 
-
--- ------------------------------------------------------------
 -- Limpieza previa (por si se re-corre el script)
--- ------------------------------------------------------------
 DROP USER IF EXISTS 'bestiario_admin'@'localhost';
 DROP USER IF EXISTS 'bestiario_editor'@'localhost';
 DROP USER IF EXISTS 'bestiario_lector'@'localhost';
 
--- ------------------------------------------------------------
--- ROL 1: ADMINISTRADOR
--- Acceso total a la base, incluyendo gestión de estructura,
--- ejecución de procedures y consulta de auditoría.
--- ------------------------------------------------------------
+/*
+ROL 1: ADMINISTRADOR
+Acceso total a la base, incluyendo gestión de estructura, ejecución de procedures y consulta de auditoría.
+*/
+
 CREATE USER 'bestiario_admin'@'localhost'
     IDENTIFIED BY 'AdminER_2026!';
 
@@ -1227,64 +1224,55 @@ GRANT ALL PRIVILEGES ON Elden_Ring.*
     TO 'bestiario_admin'@'localhost'
     WITH GRANT OPTION;
 
--- ------------------------------------------------------------
--- ROL 2: EDITOR / OPERATIVO
--- Puede agregar y modificar contenido del bestiario, pero
--- no puede borrar registros ni tocar catálogos canónicos
--- ni la auditoría.
--- ------------------------------------------------------------
+/*
+ROL 2: EDITOR / OPERATIVO
+Puede agregar y modificar contenido del bestiario, pero no puede borrar registros ni tocar catálogos canónicos ni la auditoría.
+*/
+
 CREATE USER 'bestiario_editor'@'localhost'
     IDENTIFIED BY 'EditorER_2026!';
 
--- Permisos amplios de lectura sobre toda la base
 GRANT SELECT ON Elden_Ring.*
     TO 'bestiario_editor'@'localhost';
 
--- Permisos de escritura solo sobre tablas de contenido editable
-GRANT INSERT, UPDATE ON Elden_Ring.enemigo               TO 'bestiario_editor'@'localhost';
-GRANT INSERT, UPDATE ON Elden_Ring.ficha_jefe            TO 'bestiario_editor'@'localhost';
-GRANT INSERT, UPDATE ON Elden_Ring.objeto_drop           TO 'bestiario_editor'@'localhost';
-GRANT INSERT, UPDATE ON Elden_Ring.enemigo_quest         TO 'bestiario_editor'@'localhost';
-GRANT INSERT, UPDATE ON Elden_Ring.enemigo_resistencia   TO 'bestiario_editor'@'localhost';
-GRANT INSERT, UPDATE ON Elden_Ring.enemigo_debilidad     TO 'bestiario_editor'@'localhost';
-GRANT INSERT, UPDATE ON Elden_Ring.enemigo_drop          TO 'bestiario_editor'@'localhost';
+GRANT INSERT, UPDATE ON Elden_Ring.enemigo TO 'bestiario_editor'@'localhost';
+GRANT INSERT, UPDATE ON Elden_Ring.ficha_jefe TO 'bestiario_editor'@'localhost';
+GRANT INSERT, UPDATE ON Elden_Ring.objeto_drop TO 'bestiario_editor'@'localhost';
+GRANT INSERT, UPDATE ON Elden_Ring.enemigo_quest TO 'bestiario_editor'@'localhost';
+GRANT INSERT, UPDATE ON Elden_Ring.enemigo_resistencia TO 'bestiario_editor'@'localhost';
+GRANT INSERT, UPDATE ON Elden_Ring.enemigo_debilidad TO 'bestiario_editor'@'localhost';
+GRANT INSERT, UPDATE ON Elden_Ring.enemigo_drop TO 'bestiario_editor'@'localhost';
 GRANT INSERT, UPDATE ON Elden_Ring.ataque_aplica_efecto  TO 'bestiario_editor'@'localhost';
 
--- Puede ejecutar el procedure de alta de enemigos
 GRANT EXECUTE ON PROCEDURE Elden_Ring.sp_registrar_enemigo_completo
     TO 'bestiario_editor'@'localhost';
 
--- Bloqueo explícito de tablas sensibles (REVOKE refuerza la intención)
 REVOKE INSERT, UPDATE, DELETE
-    ON Elden_Ring.faccion          FROM 'bestiario_editor'@'localhost';
+    ON Elden_Ring.faccion FROM 'bestiario_editor'@'localhost';
 REVOKE INSERT, UPDATE, DELETE
-    ON Elden_Ring.ubicacion        FROM 'bestiario_editor'@'localhost';
+    ON Elden_Ring.ubicacion FROM 'bestiario_editor'@'localhost';
 REVOKE INSERT, UPDATE, DELETE
     ON Elden_Ring.origen_contenido FROM 'bestiario_editor'@'localhost';
 REVOKE INSERT, UPDATE, DELETE
     ON Elden_Ring.auditoria_enemigo FROM 'bestiario_editor'@'localhost';
 
--- ------------------------------------------------------------
--- ROL 3: LECTOR / CONSULTA
--- Solo lectura, y solo a través de las vistas.
--- No accede a tablas crudas ni a auditoría.
--- ------------------------------------------------------------
+/*
+ROL 3: LECTOR / CONSULTA
+Solo lectura, y solo a través de las vistas.
+No accede a tablas crudas ni a auditoría.
+*/
+
 CREATE USER 'bestiario_lector'@'localhost'
     IDENTIFIED BY 'LectorER_2026!';
 
--- Acceso solo a las vistas (no a tablas)
 GRANT SELECT ON Elden_Ring.vw_bestiario_completo
     TO 'bestiario_lector'@'localhost';
 GRANT SELECT ON Elden_Ring.vw_ranking_jefes_por_region
     TO 'bestiario_lector'@'localhost';
 
--- Puede ejecutar el procedure de reporte por región (solo lectura)
 GRANT EXECUTE ON PROCEDURE Elden_Ring.sp_reporte_runas_por_region
     TO 'bestiario_lector'@'localhost';
 
--- ------------------------------------------------------------
--- Aplicar todos los cambios de permisos
--- ------------------------------------------------------------
 FLUSH PRIVILEGES;
 
 
@@ -1293,84 +1281,82 @@ FLUSH PRIVILEGES;
 CONSULTAS ORIENTADAS AL NEGOCIO 
 */
 
--- ------------------------------------------------------------
--- CONSULTA NEGOCIO 1 — TENDENCIA
--- Pregunta: ¿Cómo ha evolucionado la introducción de jefes
---   a lo largo de las versiones del juego? Esto identifica
---   en qué parches se agregó más contenido y permite ver el
---   peso del DLC vs el juego base en términos de jefes.
--- ------------------------------------------------------------
+/*
+CONSULTA NEGOCIO 1 — TENDENCIA
+Pregunta: 
+¿Cómo ha evolucionado la introducción de jefes a lo largo de las versiones del juego? 
+Esto identifica en qué parches se agregó más contenido y permite ver el peso del DLC vs el juego base en términos de jefes.
+*/
+
 SELECT
     o.version_parche,
-    o.nombre                       AS version,
+    o.nombre AS version,
     CASE WHEN o.es_dlc = TRUE THEN 'DLC' ELSE 'Base' END AS tipo_contenido,
-    COUNT(fj.id_enemigo)           AS jefes_introducidos,
-    SUM(fj.recompensa_runas)       AS runas_totales_aportadas
+    COUNT(fj.id_enemigo) AS jefes_introducidos,
+    SUM(fj.recompensa_runas) AS runas_totales_aportadas
 FROM origen_contenido o
-LEFT JOIN enemigo    e  ON o.id_origen   = e.id_origen
-LEFT JOIN ficha_jefe fj ON e.id_enemigo  = fj.id_enemigo
+LEFT JOIN enemigo    e  ON o.id_origen = e.id_origen
+LEFT JOIN ficha_jefe fj ON e.id_enemigo = fj.id_enemigo
 GROUP BY o.id_origen, o.version_parche, o.nombre, o.es_dlc
 ORDER BY o.es_dlc, o.version_parche;
 
 
--- ------------------------------------------------------------
--- CONSULTA NEGOCIO 2 — COMPORTAMIENTO
--- Pregunta: ¿Cuáles son los efectos de estado más "populares"
---   entre los enemigos del juego? Esto sirve a los jugadores
---   para saber a qué efectos deben subir resistencias
---   prioritariamente al armar sus builds.
--- ------------------------------------------------------------
+/*
+CONSULTA NEGOCIO 2 — COMPORTAMIENTO
+Pregunta: 
+¿Cuáles son los efectos de estado más "populares" entre los enemigos del juego? 
+Esto sirve a los jugadores para saber a qué efectos deben subir resistencias prioritariamente al armar sus builds.
+*/
+
 SELECT
     ef.nombre_efecto,
     ef.stat_que_lo_mitiga,
-    COUNT(aae.id_enemigo)                     AS cantidad_enemigos_lo_usan,
-    AVG(aae.puntos_acumulacion)               AS acumulacion_promedio,
-    MAX(aae.puntos_acumulacion)               AS acumulacion_maxima,
-    MIN(aae.puntos_acumulacion)               AS acumulacion_minima
+    COUNT(aae.id_enemigo) AS cantidad_enemigos_lo_usan,
+    AVG(aae.puntos_acumulacion) AS acumulacion_promedio,
+    MAX(aae.puntos_acumulacion) AS acumulacion_maxima,
+    MIN(aae.puntos_acumulacion) AS acumulacion_minima
 FROM efecto_estado ef
 INNER JOIN ataque_aplica_efecto aae ON ef.id_efecto = aae.id_efecto
 GROUP BY ef.id_efecto, ef.nombre_efecto, ef.stat_que_lo_mitiga
 ORDER BY cantidad_enemigos_lo_usan DESC, acumulacion_promedio DESC;
 
 
--- ------------------------------------------------------------
--- CONSULTA NEGOCIO 3 — REPORTE OPERATIVO
--- Pregunta: ¿Qué objetos del bestiario tienen baja probabilidad
---   de drop (≤10%)? Esto sirve como reporte operativo para
---   jugadores que están farmeando objetos raros: cuáles son,
---   de qué enemigo caen y dónde encontrar a ese enemigo.
--- ------------------------------------------------------------
+/*
+CONSULTA NEGOCIO 3 — REPORTE OPERATIVO
+Pregunta: ¿Qué objetos del bestiario tienen baja probabilidadde drop (≤10%)? 
+Esto sirve como reporte operativo para jugadores que están farmeando objetos raros: cuáles son, de qué enemigo caen y dónde encontrar a ese enemigo.
+*/
+
 SELECT
     obj.nombre_objeto,
-    to_o.nombre_tipo                 AS tipo_objeto,
+    to_o.nombre_tipo AS tipo_objeto,
     obj.valor_en_runas,
-    e.nombre                         AS dropeado_por,
-    u.nombre_region                  AS farmear_en,
-    ed.probabilidad_drop             AS probabilidad
+    e.nombre AS dropeado_por,
+    u.nombre_region AS farmear_en,
+    ed.probabilidad_drop AS probabilidad
 FROM objeto_drop obj
-INNER JOIN tipo_objeto    to_o ON obj.id_tipo_objeto = to_o.id_tipo_objeto
-INNER JOIN enemigo_drop   ed   ON obj.id_objeto       = ed.id_objeto
-INNER JOIN enemigo        e    ON ed.id_enemigo       = e.id_enemigo
-INNER JOIN ubicacion      u    ON e.id_ubicacion      = u.id_ubicacion
+INNER JOIN tipo_objeto to_o ON obj.id_tipo_objeto = to_o.id_tipo_objeto
+INNER JOIN enemigo_drop ed ON obj.id_objeto = ed.id_objeto
+INNER JOIN enemigo e ON ed.id_enemigo = e.id_enemigo
+INNER JOIN ubicacion u ON e.id_ubicacion = u.id_ubicacion
 WHERE ed.probabilidad_drop <= 10.00
 ORDER BY ed.probabilidad_drop ASC, obj.valor_en_runas DESC;
 
 
--- ------------------------------------------------------------
--- CONSULTA NEGOCIO 4 — COMPARAR CATEGORÍAS
--- Pregunta: ¿Cómo se comparan las distintas categorías de
---   enemigos en términos de dificultad? Permite ver cuánto
---   más HP/daño tiene un jefe vs un enemigo normal, y
---   dimensionar la curva de progresión del juego.
--- ------------------------------------------------------------
+/*
+CONSULTA NEGOCIO 4 — COMPARAR CATEGORÍAS
+Pregunta: ¿Cómo se comparan las distintas categorías de enemigos en términos de dificultad? 
+Permite ver cuánto más HP/daño tiene un jefe vs un enemigo normal, y dimensionar la curva de progresión del juego.
+*/
+
 SELECT
     c.nombre_categoria,
-    COUNT(e.id_enemigo)              AS cantidad_enemigos,
-    ROUND(AVG(e.hp_base), 0)         AS hp_promedio,
-    MIN(e.hp_base)                   AS hp_minimo,
-    MAX(e.hp_base)                   AS hp_maximo,
-    ROUND(AVG(e.dmg_base), 0)        AS dmg_promedio,
-    MAX(e.dmg_base)                  AS dmg_maximo
+    COUNT(e.id_enemigo) AS cantidad_enemigos,
+    ROUND(AVG(e.hp_base), 0) AS hp_promedio,
+    MIN(e.hp_base) AS hp_minimo,
+    MAX(e.hp_base) AS hp_maximo,
+    ROUND(AVG(e.dmg_base), 0) AS dmg_promedio,
+    MAX(e.dmg_base) AS dmg_maximo
 FROM categoria_enemigo c
 INNER JOIN enemigo e ON c.id_categoria = e.id_categoria
 GROUP BY c.id_categoria, c.nombre_categoria
@@ -1382,28 +1368,14 @@ ORDER BY hp_promedio DESC;
 Consultas analíticas complejas 
 */
 
--- ============================================================
--- CONSULTAS ANALÍTICAS COMPLEJAS (cumplen requisito: 5+ elementos)
--- ============================================================
 
--- ============================================================
--- CONSULTA ANALÍTICA 1
--- Pregunta: ¿Cuáles son los jefes "más rentables" por hora de
---   esfuerzo? Definimos rentabilidad como: runas / HP (cuánta
---   recompensa da por cada punto de vida que hay que bajar).
---   Adicionalmente, queremos rankearlos DENTRO de su categoría
---   para ver cuál es el "top farmer" de cada tipo de jefe, y
---   comparar promedios base vs DLC.
--- Elementos usados (8):
---   1) CTE (WITH)
---   2) JOIN (varios)
---   3) Funciones agregadas (AVG, SUM, COUNT)
---   4) Función de ventana (RANK OVER PARTITION BY)
---   5) CASE
---   6) ORDER BY
---   7) GROUP BY (en el CTE)
---   8) Subquery (en el SELECT principal)
--- ============================================================
+/*
+CONSULTA ANALÍTICA 1
+Pregunta: ¿Cuáles son los jefes "más rentables" por hora de esfuerzo? 
+Definimos rentabilidad como: runas / HP (cuánta recompensa da por cada punto de vida que hay que bajar).
+Adicionalmente, queremos rankearlos DENTRO de su categoría para ver cuál es el "top farmer" de cada tipo de jefe, y comparar promedios base vs DLC.
+*/
+
 WITH rentabilidad_jefes AS (
     SELECT
         e.id_enemigo,
@@ -1414,21 +1386,21 @@ WITH rentabilidad_jefes AS (
         fj.recompensa_runas,
         ROUND(fj.recompensa_runas / NULLIF(e.hp_base, 0), 2) AS runas_por_hp
     FROM enemigo e
-    INNER JOIN ficha_jefe       fj ON e.id_enemigo  = fj.id_enemigo
+    INNER JOIN ficha_jefe fj ON e.id_enemigo  = fj.id_enemigo
     INNER JOIN categoria_enemigo c ON e.id_categoria = c.id_categoria
-    INNER JOIN origen_contenido o  ON e.id_origen    = o.id_origen
+    INNER JOIN origen_contenido o  ON e.id_origen = o.id_origen
 )
 SELECT
-    r.nombre                        AS jefe,
+    r.nombre AS jefe,
     r.nombre_categoria,
     CASE WHEN r.es_dlc = TRUE THEN 'DLC' ELSE 'Base' END AS contenido,
     r.hp_base,
     r.recompensa_runas,
     r.runas_por_hp,
     RANK() OVER (PARTITION BY r.nombre_categoria
-                 ORDER BY r.runas_por_hp DESC)     AS rank_en_categoria,
+                 ORDER BY r.runas_por_hp DESC) AS rank_en_categoria,
     RANK() OVER (PARTITION BY r.es_dlc
-                 ORDER BY r.runas_por_hp DESC)     AS rank_en_contenido,
+                 ORDER BY r.runas_por_hp DESC) AS rank_en_contenido,
     (SELECT ROUND(AVG(r2.runas_por_hp), 2)
      FROM rentabilidad_jefes r2
      WHERE r2.nombre_categoria = r.nombre_categoria) AS promedio_categoria,
@@ -1436,92 +1408,69 @@ SELECT
         WHEN r.runas_por_hp >= (SELECT AVG(runas_por_hp) FROM rentabilidad_jefes)
             THEN 'Sobre el promedio'
         ELSE 'Bajo el promedio'
-    END                             AS posicion_global
+    END AS posicion_global
 FROM rentabilidad_jefes r
 ORDER BY r.runas_por_hp DESC;
 
 
--- ============================================================
--- CONSULTA ANALÍTICA 2
--- Pregunta: ¿Cuáles son las regiones más "peligrosas" del juego?
---   Definimos peligrosidad como una combinación de: cantidad de
---   enemigos que aplican efectos de estado, dificultad promedio
---   de los jefes (HP), y diversidad de atributos contra los que
---   los enemigos son resistentes. Filtrar solo regiones con al
---   menos 1 jefe documentado.
--- Elementos usados (8):
---   1) JOIN (múltiples)
---   2) GROUP BY
---   3) HAVING
---   4) Funciones agregadas (COUNT, AVG, SUM)
---   5) DISTINCT
---   6) CASE
---   7) ORDER BY
---   8) Subquery
--- ============================================================
+/*
+CONSULTA ANALÍTICA 2
+Pregunta: ¿Cuáles son las regiones más "peligrosas" del juego?
+Definimos peligrosidad como una combinación de: cantidad de enemigos que aplican efectos de estado, dificultad promedio de los jefes (HP), y diversidad de atributos contra los que los enemigos son resistentes.
+*/
+
 SELECT
     u.nombre_region,
     u.nivel_recomendado_min,
     u.nivel_recomendado_max,
-    COUNT(DISTINCT e.id_enemigo)                       AS total_enemigos,
-    COUNT(DISTINCT fj.id_enemigo)                      AS total_jefes,
+    COUNT(DISTINCT e.id_enemigo) AS total_enemigos,
+    COUNT(DISTINCT fj.id_enemigo) AS total_jefes,
     ROUND(AVG(CASE
         WHEN fj.id_enemigo IS NOT NULL THEN e.hp_base
         ELSE NULL
-    END), 0)                                           AS hp_promedio_jefes,
-    COUNT(DISTINCT aae.id_efecto)                      AS efectos_distintos_en_zona,
-    COUNT(DISTINCT er.id_atributo)                     AS resistencias_distintas,
+    END), 0) AS hp_promedio_jefes,
+    COUNT(DISTINCT aae.id_efecto) AS efectos_distintos_en_zona,
+    COUNT(DISTINCT er.id_atributo) AS resistencias_distintas,
     SUM(CASE WHEN ed.multiplicador_dano >= 1.50
-             THEN 1 ELSE 0 END)                        AS debilidades_explotables,
+             THEN 1 ELSE 0 END) AS debilidades_explotables,
     CASE
         WHEN COUNT(DISTINCT aae.id_efecto) >= 5  THEN 'Extremo'
         WHEN COUNT(DISTINCT aae.id_efecto) >= 3  THEN 'Alto'
         WHEN COUNT(DISTINCT aae.id_efecto) >= 1  THEN 'Moderado'
         ELSE 'Bajo'
-    END                                                AS nivel_peligro_efectos,
+    END AS nivel_peligro_efectos,
     (SELECT COUNT(*)
      FROM enemigo e2
      WHERE e2.id_ubicacion = u.id_ubicacion) -
-    COUNT(DISTINCT e.id_enemigo)                       AS enemigos_no_documentados
+    COUNT(DISTINCT e.id_enemigo) AS enemigos_no_documentados
 FROM ubicacion u
-LEFT  JOIN enemigo               e   ON u.id_ubicacion = e.id_ubicacion
-LEFT  JOIN ficha_jefe            fj  ON e.id_enemigo   = fj.id_enemigo
+LEFT  JOIN enemigo e ON u.id_ubicacion = e.id_ubicacion
+LEFT  JOIN ficha_jefe fj  ON e.id_enemigo   = fj.id_enemigo
 LEFT  JOIN ataque_aplica_efecto  aae ON e.id_enemigo   = aae.id_enemigo
-LEFT  JOIN enemigo_resistencia   er  ON e.id_enemigo   = er.id_enemigo
-LEFT  JOIN enemigo_debilidad     ed  ON e.id_enemigo   = ed.id_enemigo
+LEFT  JOIN enemigo_resistencia er  ON e.id_enemigo   = er.id_enemigo
+LEFT  JOIN enemigo_debilidad ed  ON e.id_enemigo   = ed.id_enemigo
 GROUP BY u.id_ubicacion, u.nombre_region,
          u.nivel_recomendado_min, u.nivel_recomendado_max
 HAVING total_jefes >= 1
 ORDER BY total_jefes DESC, efectos_distintos_en_zona DESC;
 
 
--- ============================================================
--- CONSULTA ANALÍTICA 3
--- Pregunta: Análisis comparativo de facciones — queremos
---   identificar qué facciones tienen "presencia élite" (jefes
---   importantes) versus "presencia masiva" (muchas tropas
---   normales). Unimos ambos análisis con UNION ALL para crear
---   un ranking dual y categorizamos cada facción según su perfil.
--- Elementos usados (7):
---   1) CTE (WITH)
---   2) UNION ALL
---   3) JOIN
---   4) GROUP BY
---   5) Funciones agregadas (COUNT, SUM, AVG)
---   6) CASE
---   7) ORDER BY
---   8) Función de ventana (ROW_NUMBER OVER)
--- ============================================================
+/*
+CONSULTA ANALÍTICA 3
+Pregunta: Análisis comparativo de facciones — queremos identificar qué facciones tienen "presencia élite" (jefes importantes) versus "presencia masiva" (muchas tropas normales).
+Unimos ambos análisis con UNION ALL para crear un ranking dual y categorizamos cada facción según su perfil.
+*/
+
 WITH presencia_jefes AS (
     SELECT
         f.id_faccion,
         f.nombre_faccion,
-        COUNT(fj.id_enemigo)                AS cantidad,
-        SUM(fj.recompensa_runas)            AS runas_acumuladas,
-        ROUND(AVG(e.hp_base), 0)            AS hp_promedio,
-        'JEFE'                              AS tipo_presencia
+        COUNT(fj.id_enemigo) AS cantidad,
+        SUM(fj.recompensa_runas) AS runas_acumuladas,
+        ROUND(AVG(e.hp_base), 0) AS hp_promedio,
+        'JEFE' AS tipo_presencia
     FROM faccion f
-    INNER JOIN enemigo    e  ON f.id_faccion = e.id_faccion
+    INNER JOIN enemigo e  ON f.id_faccion = e.id_faccion
     INNER JOIN ficha_jefe fj ON e.id_enemigo = fj.id_enemigo
     GROUP BY f.id_faccion, f.nombre_faccion
 ),
@@ -1529,13 +1478,13 @@ presencia_tropas AS (
     SELECT
         f.id_faccion,
         f.nombre_faccion,
-        COUNT(e.id_enemigo)                 AS cantidad,
-        0                                   AS runas_acumuladas,
-        ROUND(AVG(e.hp_base), 0)            AS hp_promedio,
-        'TROPA'                             AS tipo_presencia
+        COUNT(e.id_enemigo) AS cantidad,
+        0 AS runas_acumuladas,
+        ROUND(AVG(e.hp_base), 0) AS hp_promedio,
+        'TROPA' AS tipo_presencia
     FROM faccion f
-    INNER JOIN enemigo            e ON f.id_faccion   = e.id_faccion
-    INNER JOIN categoria_enemigo  c ON e.id_categoria = c.id_categoria
+    INNER JOIN enemigo e ON f.id_faccion   = e.id_faccion
+    INNER JOIN categoria_enemigo c ON e.id_categoria = c.id_categoria
     WHERE c.nombre_categoria NOT IN (
         'Minijefe','Jefe de Mazmorra','Jefe Mayor',
         'Jefe de Remembranza','Jefe Final','Jefe Opcional'
@@ -1554,19 +1503,21 @@ SELECT
     runas_acumuladas,
     hp_promedio,
     ROW_NUMBER() OVER (PARTITION BY tipo_presencia
-                       ORDER BY cantidad DESC)        AS ranking_tipo,
+                       ORDER BY cantidad DESC) AS ranking_tipo,
     CASE
         WHEN tipo_presencia = 'JEFE'  AND cantidad >= 3 THEN 'Facción élite dominante'
         WHEN tipo_presencia = 'JEFE'  AND cantidad >= 1 THEN 'Facción élite menor'
         WHEN tipo_presencia = 'TROPA' AND cantidad >= 3 THEN 'Facción masiva'
         WHEN tipo_presencia = 'TROPA' AND cantidad >= 1 THEN 'Facción presente'
         ELSE 'Sin presencia destacada'
-    END                                               AS perfil
+    END AS perfil
 FROM ranking_unificado
 ORDER BY tipo_presencia, cantidad DESC;
 
 
+
 -- ------------------------------------------------------------------------------------------------------------------------------------
+
 
 
 /*
@@ -1574,7 +1525,7 @@ ZONA DE TESTEO
 */
 
 
--- para probar eL STORE PROCEDURE 1 
+-- Probar eL STORE PROCEDURE 1 
 CALL sp_registrar_enemigo_completo(
     'Acólito de Mohgwyn', 380, 95,
     1, 7, 22, 1,
@@ -1583,7 +1534,7 @@ CALL sp_registrar_enemigo_completo(
     @nuevo_id
 );
 
--- para probar el STORE PROCEDURE 2
+-- Probar el STORE PROCEDURE 2
 CALL sp_reporte_runas_por_region('Caelid');
 CALL sp_reporte_runas_por_region('Scadu Altus');
 CALL sp_reporte_runas_por_region('Inexistente');
@@ -1593,18 +1544,16 @@ CALL sp_reporte_runas_por_region('Inexistente');
 -- Probar trigger 1 (debe FALLAR con mensaje claro):
 INSERT INTO ficha_jefe (id_enemigo, titulo_jefe, recompensa_runas)
 VALUES (36, 'Oveja Lord of the Pasture', 99999);
--- Error: No se puede crear ficha_jefe: el enemigo no es de categoría tipo jefe.
+
 
 
 -- Probar trigger 2 (debe registrar en auditoria_enemigo):
 UPDATE enemigo SET hp_base = 33500 WHERE id_enemigo = 7;  -- subir HP de Malenia
 SELECT * FROM auditoria_enemigo;
--- Debe mostrar un registro con campo_modificado='hp_base',
--- valor_anterior='33251', valor_nuevo='33500'
 
 
 
--- para probar el evento programado, se puede ejecutar manualmente el bloque de código dentro del evento para simular su ejecución
+-- Probar el evento programado
 -- Ver si el scheduler está corriendo
 SHOW VARIABLES LIKE 'event_scheduler';
 -- Debe decir 'ON'
