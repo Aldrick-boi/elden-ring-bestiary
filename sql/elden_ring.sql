@@ -899,19 +899,17 @@ RIGHT JOIN efecto_estado ef ON aae.id_efecto = ef.id_efecto
 GROUP BY ef.id_efecto, ef.nombre_efecto, ef.stat_que_lo_mitiga, ef.duracion_base_segundos
 ORDER BY cantidad_enemigos_lo_usan DESC, ef.nombre_efecto;
 
--- cross 
+-- cross
 SELECT
     c.nombre_categoria,
     a.nombre_atributo,
     CONCAT(c.nombre_categoria, ' vs ', a.nombre_atributo) AS combinacion,
-    (SELECT COUNT(*)
-     FROM enemigo e2
-     INNER JOIN enemigo_debilidad ed ON e2.id_enemigo = ed.id_enemigo
-     WHERE e2.id_categoria = c.id_categoria
-       AND ed.id_atributo = a.id_atributo
-    ) AS enemigos_de_esa_categoria_debiles_al_atributo
+    COUNT(ed.id_enemigo) AS enemigos_debiles
 FROM categoria_enemigo c
 CROSS JOIN atributo_combate a
+LEFT JOIN enemigo e ON e.id_categoria = c.id_categoria
+LEFT JOIN enemigo_debilidad ed ON ed.id_enemigo = e.id_enemigo AND ed.id_atributo = a.id_atributo
+GROUP BY c.nombre_categoria, a.nombre_atributo
 ORDER BY c.nombre_categoria, a.nombre_atributo;
 
 
@@ -943,15 +941,6 @@ CREATE PROCEDURE sp_registrar_enemigo_completo(
     OUT p_id_generado INT
 )
 BEGIN
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        SET p_id_generado = -1;
-        RESIGNAL;
-    END;
-
-    START TRANSACTION;
-
     INSERT INTO enemigo (nombre, hp_base, dmg_base,
                          id_categoria, id_faccion,
                          id_ubicacion, id_origen)
@@ -969,8 +958,6 @@ BEGIN
                 p_numero_fases, p_recompensa_runas,
                 p_es_remembranza, p_requiere_invocacion);
     END IF;
-
-    COMMIT;
 END$$
 
 DELIMITER ;
@@ -983,7 +970,6 @@ CREATE PROCEDURE sp_reporte_runas_por_region(
     IN p_nombre_region VARCHAR(100)
 )
 BEGIN
-    DECLARE v_total_runas BIGINT DEFAULT 0;
     DECLARE v_existe_region INT DEFAULT 0;
 
     SELECT COUNT(*) INTO v_existe_region
@@ -995,12 +981,6 @@ BEGIN
         SET MESSAGE_TEXT = 'La región especificada no existe en el sistema.';
     END IF;
 
-    SELECT COALESCE(SUM(fj.recompensa_runas), 0) INTO v_total_runas
-    FROM ficha_jefe fj
-    INNER JOIN enemigo e ON fj.id_enemigo  = e.id_enemigo
-    INNER JOIN ubicacion u ON e.id_ubicacion = u.id_ubicacion
-    WHERE u.nombre_region = p_nombre_region;
-
     SELECT
         e.nombre AS jefe,
         fj.titulo_jefe,
@@ -1008,17 +988,12 @@ BEGIN
         fj.numero_fases,
         fj.recompensa_runas,
         CASE
-            WHEN v_total_runas = 0 THEN 0
-            ELSE ROUND((fj.recompensa_runas * 100.0) / v_total_runas, 2)
-        END                                                AS pct_del_total,
-        CASE
             WHEN fj.es_jefe_remembranza = TRUE THEN 'Sí'
             ELSE 'No'
         END AS otorga_remembranza,
-        u.nombre_region,
-        v_total_runas AS runas_totales_region
+        u.nombre_region
     FROM ficha_jefe fj
-    INNER JOIN enemigo   e ON fj.id_enemigo  = e.id_enemigo
+    INNER JOIN enemigo e ON fj.id_enemigo = e.id_enemigo
     INNER JOIN ubicacion u ON e.id_ubicacion = u.id_ubicacion
     WHERE u.nombre_region = p_nombre_region
     ORDER BY fj.recompensa_runas DESC;
@@ -1043,7 +1018,7 @@ CREATE TABLE auditoria_enemigo (
     usuario_responsable VARCHAR(100) NOT NULL DEFAULT (CURRENT_USER()),
     fecha_evento DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_operacion CHECK (operacion IN ('INSERT','UPDATE','DELETE'))
-) ENGINE=InnoDB;
+)
 
 
 
@@ -1084,7 +1059,6 @@ CREATE TRIGGER trg_auditar_cambios_enemigo
 AFTER UPDATE ON enemigo
 FOR EACH ROW
 BEGIN
-    -- Auditar cambio en HP
     IF OLD.hp_base <> NEW.hp_base THEN
         INSERT INTO auditoria_enemigo
             (id_enemigo_afectado, operacion, campo_modificado,
@@ -1094,7 +1068,6 @@ BEGIN
              CAST(OLD.hp_base AS CHAR), CAST(NEW.hp_base AS CHAR));
     END IF;
 
-    -- Auditar cambio en daño
     IF OLD.dmg_base <> NEW.dmg_base THEN
         INSERT INTO auditoria_enemigo
             (id_enemigo_afectado, operacion, campo_modificado,
@@ -1102,26 +1075,6 @@ BEGIN
         VALUES
             (NEW.id_enemigo, 'UPDATE', 'dmg_base',
              CAST(OLD.dmg_base AS CHAR), CAST(NEW.dmg_base AS CHAR));
-    END IF;
-
-    -- Auditar cambio en categoría
-    IF OLD.id_categoria <> NEW.id_categoria THEN
-        INSERT INTO auditoria_enemigo
-            (id_enemigo_afectado, operacion, campo_modificado,
-             valor_anterior, valor_nuevo)
-        VALUES
-            (NEW.id_enemigo, 'UPDATE', 'id_categoria',
-             CAST(OLD.id_categoria AS CHAR), CAST(NEW.id_categoria AS CHAR));
-    END IF;
-
-    -- Auditar cambio en nombre
-    IF OLD.nombre <> NEW.nombre THEN
-        INSERT INTO auditoria_enemigo
-            (id_enemigo_afectado, operacion, campo_modificado,
-             valor_anterior, valor_nuevo)
-        VALUES
-            (NEW.id_enemigo, 'UPDATE', 'nombre',
-             OLD.nombre, NEW.nombre);
     END IF;
 END$$
 
@@ -1158,43 +1111,17 @@ COMMENT 'Limpia auditoría con más de 90 días y genera resumen histórico'
 DO
 BEGIN
     DECLARE v_total_borrar INT DEFAULT 0;
-    DECLARE v_inserts INT DEFAULT 0;
-    DECLARE v_updates INT DEFAULT 0;
-    DECLARE v_deletes INT DEFAULT 0;
-    DECLARE v_enemigo_top VARCHAR(100) DEFAULT NULL;
 
-    -- 1) Contar registros viejos y por operación
-    SELECT
-        COUNT(*),
-        SUM(CASE WHEN operacion = 'INSERT' THEN 1 ELSE 0 END),
-        SUM(CASE WHEN operacion = 'UPDATE' THEN 1 ELSE 0 END),
-        SUM(CASE WHEN operacion = 'DELETE' THEN 1 ELSE 0 END)
-    INTO v_total_borrar, v_inserts, v_updates, v_deletes
+    SELECT COUNT(*) INTO v_total_borrar
     FROM auditoria_enemigo
     WHERE fecha_evento < (NOW() - INTERVAL 90 DAY);
 
-    -- 2) Identificar al enemigo más editado del periodo
-    SELECT e.nombre INTO v_enemigo_top
-    FROM auditoria_enemigo a
-    INNER JOIN enemigo e ON a.id_enemigo_afectado = e.id_enemigo
-    WHERE a.fecha_evento < (NOW() - INTERVAL 90 DAY)
-    GROUP BY a.id_enemigo_afectado, e.nombre
-    ORDER BY COUNT(*) DESC
-    LIMIT 1;
-
-    -- 3) Solo si hay algo que borrar, registrar resumen y borrar
     IF v_total_borrar > 0 THEN
         INSERT INTO resumen_auditoria_historico
-            (registros_eliminados, operaciones_insert,
-             operaciones_update,   operaciones_delete,
-             enemigo_mas_editado,  observaciones)
+            (registros_eliminados, observaciones)
         VALUES
-            (v_total_borrar, IFNULL(v_inserts, 0),
-             IFNULL(v_updates, 0), IFNULL(v_deletes, 0),
-             v_enemigo_top,
-             CONCAT('Limpieza automática: ',
-                    v_total_borrar,
-                    ' registros eliminados de auditoría con más de 90 días.'));
+            (v_total_borrar,
+             CONCAT('Limpieza automática: ', v_total_borrar, ' registros eliminados.'));
 
         DELETE FROM auditoria_enemigo
         WHERE fecha_evento < (NOW() - INTERVAL 90 DAY);
@@ -1364,59 +1291,38 @@ ORDER BY hp_promedio DESC;
 
 
 
-/*
-Consultas analíticas complejas 
-*/
 
+
+
+
+/*
+CONSULTAS ANALÍTICAS
+*/
 
 /*
 CONSULTA ANALÍTICA 1
-Pregunta: ¿Cuáles son los jefes "más rentables" por hora de esfuerzo? 
-Definimos rentabilidad como: runas / HP (cuánta recompensa da por cada punto de vida que hay que bajar).
-Adicionalmente, queremos rankearlos DENTRO de su categoría para ver cuál es el "top farmer" de cada tipo de jefe, y comparar promedios base vs DLC.
+¿Cuáles son los jefes más rentables?
+Métrica: runas obtenidas por punto de HP (recompensa vs esfuerzo).
 */
 
-WITH rentabilidad_jefes AS (
-    SELECT
-        e.id_enemigo,
-        e.nombre,
-        c.nombre_categoria,
-        o.es_dlc,
-        e.hp_base,
-        fj.recompensa_runas,
-        ROUND(fj.recompensa_runas / NULLIF(e.hp_base, 0), 2) AS runas_por_hp
-    FROM enemigo e
-    INNER JOIN ficha_jefe fj ON e.id_enemigo  = fj.id_enemigo
-    INNER JOIN categoria_enemigo c ON e.id_categoria = c.id_categoria
-    INNER JOIN origen_contenido o  ON e.id_origen = o.id_origen
-)
 SELECT
-    r.nombre AS jefe,
-    r.nombre_categoria,
-    CASE WHEN r.es_dlc = TRUE THEN 'DLC' ELSE 'Base' END AS contenido,
-    r.hp_base,
-    r.recompensa_runas,
-    r.runas_por_hp,
-    RANK() OVER (PARTITION BY r.nombre_categoria
-                 ORDER BY r.runas_por_hp DESC) AS rank_en_categoria,
-    RANK() OVER (PARTITION BY r.es_dlc
-                 ORDER BY r.runas_por_hp DESC) AS rank_en_contenido,
-    (SELECT ROUND(AVG(r2.runas_por_hp), 2)
-     FROM rentabilidad_jefes r2
-     WHERE r2.nombre_categoria = r.nombre_categoria) AS promedio_categoria,
-    CASE
-        WHEN r.runas_por_hp >= (SELECT AVG(runas_por_hp) FROM rentabilidad_jefes)
-            THEN 'Sobre el promedio'
-        ELSE 'Bajo el promedio'
-    END AS posicion_global
-FROM rentabilidad_jefes r
-ORDER BY r.runas_por_hp DESC;
+    e.nombre AS jefe,
+    c.nombre_categoria,
+    CASE WHEN o.es_dlc = TRUE THEN 'DLC' ELSE 'Base' END AS contenido,
+    e.hp_base,
+    fj.recompensa_runas,
+    ROUND(fj.recompensa_runas / e.hp_base, 2) AS runas_por_hp
+FROM enemigo e
+INNER JOIN ficha_jefe fj ON e.id_enemigo = fj.id_enemigo
+INNER JOIN categoria_enemigo c ON e.id_categoria = c.id_categoria
+INNER JOIN origen_contenido o ON e.id_origen = o.id_origen
+ORDER BY runas_por_hp DESC;
 
 
 /*
 CONSULTA ANALÍTICA 2
-Pregunta: ¿Cuáles son las regiones más "peligrosas" del juego?
-Definimos peligrosidad como una combinación de: cantidad de enemigos que aplican efectos de estado, dificultad promedio de los jefes (HP), y diversidad de atributos contra los que los enemigos son resistentes.
+¿Cuáles son las regiones más peligrosas?
+Basado en cantidad de jefes, HP promedio y diversidad de efectos de estado.
 */
 
 SELECT
@@ -1425,107 +1331,62 @@ SELECT
     u.nivel_recomendado_max,
     COUNT(DISTINCT e.id_enemigo) AS total_enemigos,
     COUNT(DISTINCT fj.id_enemigo) AS total_jefes,
-    ROUND(AVG(CASE
-        WHEN fj.id_enemigo IS NOT NULL THEN e.hp_base
-        ELSE NULL
-    END), 0) AS hp_promedio_jefes,
+    ROUND(AVG(e.hp_base), 0) AS hp_promedio,
     COUNT(DISTINCT aae.id_efecto) AS efectos_distintos_en_zona,
-    COUNT(DISTINCT er.id_atributo) AS resistencias_distintas,
-    SUM(CASE WHEN ed.multiplicador_dano >= 1.50
-             THEN 1 ELSE 0 END) AS debilidades_explotables,
     CASE
-        WHEN COUNT(DISTINCT aae.id_efecto) >= 5  THEN 'Extremo'
-        WHEN COUNT(DISTINCT aae.id_efecto) >= 3  THEN 'Alto'
-        WHEN COUNT(DISTINCT aae.id_efecto) >= 1  THEN 'Moderado'
+        WHEN COUNT(DISTINCT aae.id_efecto) >= 5 THEN 'Extremo'
+        WHEN COUNT(DISTINCT aae.id_efecto) >= 3 THEN 'Alto'
+        WHEN COUNT(DISTINCT aae.id_efecto) >= 1 THEN 'Moderado'
         ELSE 'Bajo'
-    END AS nivel_peligro_efectos,
-    (SELECT COUNT(*)
-     FROM enemigo e2
-     WHERE e2.id_ubicacion = u.id_ubicacion) -
-    COUNT(DISTINCT e.id_enemigo) AS enemigos_no_documentados
+    END AS nivel_peligro
 FROM ubicacion u
-LEFT  JOIN enemigo e ON u.id_ubicacion = e.id_ubicacion
-LEFT  JOIN ficha_jefe fj  ON e.id_enemigo   = fj.id_enemigo
-LEFT  JOIN ataque_aplica_efecto  aae ON e.id_enemigo   = aae.id_enemigo
-LEFT  JOIN enemigo_resistencia er  ON e.id_enemigo   = er.id_enemigo
-LEFT  JOIN enemigo_debilidad ed  ON e.id_enemigo   = ed.id_enemigo
-GROUP BY u.id_ubicacion, u.nombre_region,
-         u.nivel_recomendado_min, u.nivel_recomendado_max
+LEFT JOIN enemigo e ON u.id_ubicacion = e.id_ubicacion
+LEFT JOIN ficha_jefe fj ON e.id_enemigo = fj.id_enemigo
+LEFT JOIN ataque_aplica_efecto aae ON e.id_enemigo = aae.id_enemigo
+GROUP BY u.id_ubicacion, u.nombre_region, u.nivel_recomendado_min, u.nivel_recomendado_max
 HAVING total_jefes >= 1
 ORDER BY total_jefes DESC, efectos_distintos_en_zona DESC;
 
 
 /*
 CONSULTA ANALÍTICA 3
-Pregunta: Análisis comparativo de facciones — queremos identificar qué facciones tienen "presencia élite" (jefes importantes) versus "presencia masiva" (muchas tropas normales).
-Unimos ambos análisis con UNION ALL para crear un ranking dual y categorizamos cada facción según su perfil.
+¿Qué facciones tienen más presencia élite (jefes) y cuáles más presencia masiva (tropas)?
 */
 
-WITH presencia_jefes AS (
-    SELECT
-        f.id_faccion,
-        f.nombre_faccion,
-        COUNT(fj.id_enemigo) AS cantidad,
-        SUM(fj.recompensa_runas) AS runas_acumuladas,
-        ROUND(AVG(e.hp_base), 0) AS hp_promedio,
-        'JEFE' AS tipo_presencia
-    FROM faccion f
-    INNER JOIN enemigo e  ON f.id_faccion = e.id_faccion
-    INNER JOIN ficha_jefe fj ON e.id_enemigo = fj.id_enemigo
-    GROUP BY f.id_faccion, f.nombre_faccion
-),
-presencia_tropas AS (
-    SELECT
-        f.id_faccion,
-        f.nombre_faccion,
-        COUNT(e.id_enemigo) AS cantidad,
-        0 AS runas_acumuladas,
-        ROUND(AVG(e.hp_base), 0) AS hp_promedio,
-        'TROPA' AS tipo_presencia
-    FROM faccion f
-    INNER JOIN enemigo e ON f.id_faccion   = e.id_faccion
-    INNER JOIN categoria_enemigo c ON e.id_categoria = c.id_categoria
-    WHERE c.nombre_categoria NOT IN (
-        'Minijefe','Jefe de Mazmorra','Jefe Mayor',
-        'Jefe de Remembranza','Jefe Final','Jefe Opcional'
-    )
-    GROUP BY f.id_faccion, f.nombre_faccion
-),
-ranking_unificado AS (
-    SELECT * FROM presencia_jefes
-    UNION ALL
-    SELECT * FROM presencia_tropas
-)
+-- Facciones con más jefes
 SELECT
-    nombre_faccion,
-    tipo_presencia,
-    cantidad,
-    runas_acumuladas,
-    hp_promedio,
-    ROW_NUMBER() OVER (PARTITION BY tipo_presencia
-                       ORDER BY cantidad DESC) AS ranking_tipo,
-    CASE
-        WHEN tipo_presencia = 'JEFE'  AND cantidad >= 3 THEN 'Facción élite dominante'
-        WHEN tipo_presencia = 'JEFE'  AND cantidad >= 1 THEN 'Facción élite menor'
-        WHEN tipo_presencia = 'TROPA' AND cantidad >= 3 THEN 'Facción masiva'
-        WHEN tipo_presencia = 'TROPA' AND cantidad >= 1 THEN 'Facción presente'
-        ELSE 'Sin presencia destacada'
-    END AS perfil
-FROM ranking_unificado
-ORDER BY tipo_presencia, cantidad DESC;
+    f.nombre_faccion,
+    COUNT(fj.id_enemigo) AS cantidad_jefes,
+    SUM(fj.recompensa_runas) AS runas_acumuladas,
+    ROUND(AVG(e.hp_base), 0) AS hp_promedio_jefes
+FROM faccion f
+INNER JOIN enemigo e ON f.id_faccion = e.id_faccion
+INNER JOIN ficha_jefe fj ON e.id_enemigo = fj.id_enemigo
+GROUP BY f.id_faccion, f.nombre_faccion
+ORDER BY cantidad_jefes DESC;
 
-
-
--- ------------------------------------------------------------------------------------------------------------------------------------
-
+-- Facciones con más tropas normales
+SELECT
+    f.nombre_faccion,
+    COUNT(e.id_enemigo) AS cantidad_tropas,
+    ROUND(AVG(e.hp_base), 0) AS hp_promedio_tropas
+FROM faccion f
+INNER JOIN enemigo e ON f.id_faccion = e.id_faccion
+INNER JOIN categoria_enemigo c ON e.id_categoria = c.id_categoria
+WHERE c.nombre_categoria NOT IN (
+    'Minijefe', 'Jefe de Mazmorra', 'Jefe Mayor',
+    'Jefe de Remembranza', 'Jefe Final', 'Jefe Opcional'
+)
+GROUP BY f.id_faccion, f.nombre_faccion
+ORDER BY cantidad_tropas DESC;
 
 
 /*
-ZONA DE TESTEO 
+ZONA DE TESTEO
 */
 
 
--- Probar eL STORE PROCEDURE 1 
+-- Probar el STORE PROCEDURE 1
 CALL sp_registrar_enemigo_completo(
     'Acólito de Mohgwyn', 380, 95,
     1, 7, 22, 1,
@@ -1541,38 +1402,18 @@ CALL sp_reporte_runas_por_region('Inexistente');
 
 
 
--- Probar trigger 1 (debe FALLAR con mensaje claro):
+-- Probar trigger 1 (debe FALLAR con mensaje claro)
 INSERT INTO ficha_jefe (id_enemigo, titulo_jefe, recompensa_runas)
 VALUES (36, 'Oveja Lord of the Pasture', 99999);
 
 
 
--- Probar trigger 2 (debe registrar en auditoria_enemigo):
-UPDATE enemigo SET hp_base = 33500 WHERE id_enemigo = 7;  -- subir HP de Malenia
+-- Probar trigger 2 (debe registrar en auditoria_enemigo)
+UPDATE enemigo SET hp_base = 33500 WHERE id_enemigo = 7;
 SELECT * FROM auditoria_enemigo;
 
 
 
--- Probar el evento programado
--- Ver si el scheduler está corriendo
+-- Verificar el evento programado
 SHOW VARIABLES LIKE 'event_scheduler';
--- Debe decir 'ON'
-
--- Ver todos los eventos definidos en la base
 SHOW EVENTS FROM Elden_Ring;
-
--- Detalle del evento (próxima ejecución, estado, etc.)
-SELECT
-    event_name,
-    interval_value,
-    interval_field,
-    status,
-    last_executed,
-    starts
-FROM information_schema.events
-WHERE event_schema = 'Elden_Ring';
-
--- Forzar ejecución manual para probarlo (sin esperar 30 días)
-ALTER EVENT ev_limpieza_auditoria_mensual DISABLE;
--- ... y luego, si quieres probar la lógica, copias el bloque BEGIN...END
--- como un procedure temporal y lo llamas con CALL.
